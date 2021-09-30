@@ -113,3 +113,34 @@ tidy_dagitty(con)%>%
 
 legend_con<-data.frame(variables = c("A", "L1", "L2", "L3", "Y"), legend = c("gene knock-out", "knockout line breeding", "dam caring behaviour", "sensorial dysfunction", "behavioural outcome"))
 legend_con%>%kbl%>%kable_classic(full_width = F)
+
+
+
+# target selection example with confounder bias  
+target<- dagitty( "dag {
+  A -> L2 <- L1 -> Y
+  A [exposure]
+  Y [outcome]
+  }")
+
+coordinates(target) <-  list(
+  x=c(A=1, Y=5, L1=3, L2 = 2),
+  y=c(A=5, Y = 5, L1 = 4, L2= 5) )
+plot(target)
+
+tidy_dagitty(target)%>%
+  mutate(y = c(1,5,5,1, 1),
+         yend = c(1,1,1, NA, NA))%>%
+  ggplot(aes(x = x, y = y, xend = xend, yend = yend)) +
+  geom_dag_node(color = "gray",
+                alpha = 0.8) +
+  geom_dag_edges(
+    edge_colour = "black",
+    edge_width = .8
+  ) +
+  geom_dag_text(color = "white")+
+  geom_dag_text() +
+  theme_dag()
+
+legend_target<-data.frame(variables = c("A", "L2", "L1", "Y"), legend = c("treatment", "target", "unmeasured confounder in observational study", "outcome"))
+legend_target%>%kbl%>%kable_classic(full_width = F)
