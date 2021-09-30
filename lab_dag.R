@@ -7,6 +7,9 @@ B=10000
 # Y = b_0 + b_1*A + b_2*L + rnorm(0,sd_Y)
 # W = g_0 + g_1*A + g_2*L + rnorm(0, sd_W)
 
+
+#example of settings for coefficients 
+#probably b_2 & g_2 can be fixed from literature 
 prob_A = 0.5
 mean_L = 150
 sd_L = 40
