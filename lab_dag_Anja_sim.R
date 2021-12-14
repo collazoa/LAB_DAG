@@ -32,7 +32,7 @@ estimate_biased<-rep(NA_real_, n_exp)
 estimate_unbiased<-rep(NA_real_, n_exp)
 
 
-set.seed(100)
+set.seed(5)
 
 exploratory_data <- list()
 
@@ -132,10 +132,9 @@ kable(summary_measures)%>%kable_classic()
 
 range<-data.frame(rbind(round(summary(estimates$coef_biased),1),
                         round(summary(estimates$baseline_adj_coef),1), 
-                        round(summary(estimates$estimate_unbiased),1)))%>%
-                  select(c(2,3,5))%>%
-                  mutate(coefficient = c("biased coefficient", "baseline-adjusted coefficient", "unbiased estimate"))%>%
-                  rename(c("First", "Median", "Third", "coefficient"))
+                        round(summary(estimates$estimate_unbiased),1)))
+range<-range%>% select(c(2,3,5))%>%
+                  mutate(coefficient = c("biased coefficient", "baseline-adjusted coefficient", "unbiased estimate"))
 
 ggplot(range, aes(x= coefficient, y = Median)) + 
   geom_point(size = 3) + 
