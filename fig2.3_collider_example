@@ -1,0 +1,151 @@
+library(tidyverse)
+library(gridExtra)
+library(ggbeeswarm)
+library(mediation)
+
+# settings for styling visualization
+cols <- RColorBrewer::brewer.pal(6, "Dark2")
+theme_set(theme_classic(base_size = 12))
+letter <- theme(plot.title = element_text(face="bold"))
+
+
+#######################################
+# function to simulate collider bias   
+#######################################
+
+sim.dat <- function(N, beta0, beta1, beta2, theta0, theta1, alpha,
+                    sigma.w, sigma.y, cutoff){
+  X <- rep(0:1, each=N)
+  
+  # causal model
+  L <- rnorm(n = 2*N, mean = 25, sd = 5)
+  W <- beta0 + beta1 * X + beta2*L + rnorm(N, 0, sigma.w)
+  Y <- theta0 + theta1 * L + alpha * X + rnorm(N, 0, sigma.y)
+  S <- W >= quantile(W, probs = cutoff)
+  
+  return(data.frame(X, L, Y, W, S))    
+}
+
+
+############################################
+# creating a illustrative example dataset  
+# for Fig 2 and Fig 3                       
+############################################
+
+set.seed(290) # reproduces a specific random sample  
+
+#########################################################
+# d is the complete data set (corresponding to Model 1)
+# d_s is the censored data set (corresponding to Model 2)
+# attrition is moderate (30%), negative side-effects on 
+# animal welfare are moderate 
+# total sample size chosen is n = 20 
+
+
+d <- sim.dat(N=10, beta0=50, beta1=-30, beta2 = -10,
+             theta0= 50, theta1= 4, alpha=0, 
+             sigma.w= 10, sigma.y= 10, cutoff = 0.3)
+
+
+d_s<-d %>% filter(S == 1)
+
+#########################################################
+
+
+#########################################################
+#mutating data to prepare for visualization 
+d <- d %>%
+  mutate(cols=factor(d$X, labels = c(cols[1],cols[4])),
+         pch=recode(X, `0`=1, `1`=17),
+         S1 =factor(d$S, labels = c(0,1)),
+         bg = recode(S1, `0`= 0.3, `1`=1 ),
+         X1=factor(recode(X, `0`="Control", `1`="Drug")))
+
+d_s<-d_s%>%
+  mutate(cols=factor(d_s$X, labels = c(cols[1],cols[4])),
+         pch=recode(X, `0`=1, `1`=17),
+         X1=factor(recode(X, `0`="Control", `1`="Drug")))
+
+d_summary<-d%>%group_by(X)%>%
+  summarize(mean_L = mean(L),
+            mean_Y = mean(Y),
+            sd_L = sd(L), 
+            sd_Y = sd(Y))%>%
+  mutate(cols = c(cols[1],cols[4]), 
+         xend = c(1.3, 2.3), 
+         x = c(0.7, 1.7))
+
+d_s_summary<-d_s%>%group_by(X)%>%
+  summarize(mean_L = mean(L),
+            mean_Y = mean(Y),
+            sd_L = sd(L), 
+            sd_Y = sd(Y))%>%
+  mutate(cols = c(cols[1],cols[4]), 
+         xend = c(1.3, 2.3), 
+         x = c(0.7, 1.7))
+
+#######################################################
+
+
+
+######################################################
+# visualization for Figure 2 and Figure 3 
+
+fig2<-ggplot(data = d, aes(y = Y, x = L, fill= X1))+
+  geom_point(shape=21,  
+             alpha = d$bg, 
+             fill = d$cols, 
+             size = 3)+
+  scale_fill_discrete()+
+  ylab(expression("final infarct size (mm"^3*")")) + 
+  xlab(expression("initial infarct size (mm"^3*")")) + 
+  ylim(100, 200) + xlim(15,40)+ 
+  theme_classic()
+
+fig2
+
+
+fig3<-grid.arrange(
+  ggplot()+
+    geom_quasirandom(data = d, aes(y = L, x = X1), shape=21, 
+                     color="darkblue", fill = d$cols, alpha = d$bg, 
+                     size = 3, width=0.1)+
+    geom_segment(data = d_summary, 
+                 aes(x = x, y = mean_L, yend = mean_L, xend = xend),
+                 color = d_summary$cols, size = 1, alpha = 0.3)+
+    geom_segment(data = d_s_summary, 
+                 aes(x = x, y = mean_L, yend = mean_L, xend = xend),
+                 color = d_summary$cols, size = 1, alpha = 1)+
+    ylab(expression("Initial infarct size (mm" ^3*")")) + 
+    xlab("") + 
+    ylim(15, 40) + 
+    ggtitle("A")+
+    letter, 
+  
+  
+  ggplot() +
+    geom_quasirandom(data = d, aes(y=Y, x=X1, group = X1), 
+                     shape=21, color="darkblue", fill = d$cols, 
+                     alpha = d$bg, size = 3, width = 0.1) +
+    geom_segment(data = d_summary, 
+                 aes(x = x, y = mean_Y, yend = mean_Y, xend = xend),
+                 color = d_summary$cols, size = 1, alpha = 0.3)+
+    geom_segment(data = d_s_summary, 
+                 aes(x = x, y = mean_Y, yend = mean_Y, xend = xend),
+                 color = d_summary$cols, size = 1, alpha = 1)+
+    ylab(expression("Final infarct size (mm"^3*")")) + 
+    xlab("") + 
+    ylim(100, 200) + 
+    ggtitle("B")+
+    letter,
+  
+  nrow=1, ncol=2)
+
+fig3 
+
+###########################################################
+
+
+
+
+
