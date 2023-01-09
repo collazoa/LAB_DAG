@@ -144,3 +144,6 @@ tidy_dagitty(target)%>%
 
 legend_target<-data.frame(variables = c("A", "L2", "L1", "Y"), legend = c("treatment", "target", "unmeasured confounder in observational study", "outcome"))
 legend_target%>%kbl%>%kable_classic(full_width = F)
+
+
+

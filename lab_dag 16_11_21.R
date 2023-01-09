@@ -2,6 +2,7 @@ library(tidyverse)
 
 B=10000
 
+
 # A bernuoulli prob_A
 # L is normal with mean_L and sd_L
 # Y = b_0 + b_1*A + b_2*L + rnorm(0,sd_Y)
@@ -11,17 +12,17 @@ prob_A = 0.5
 mean_L = 190  # from O'Collins (Book Chapter) Table 20.6. infarct size in control cohorts -> However time point is not clear, should we rather use 
 # values from Gerriet 2003 (Figure 4)? 
 sd_L = 50
-b_0 = 50
+b_0 = 50 #previously this value was set to 50 - rationale? 
 b_1 = c(0) # this values will be varied to simulate a causal treatment effect 
-b_2 = c(1.2) # this values were set according after combining estimates from Gerriet 2003 and O'Collins (Book Chapter): 
+b_2 = c(10) # this values were set according after combining estimates from Gerriet 2003 and O'Collins (Book Chapter): 
 # baseline stroke volume is 6h after MCAo, outcome measurement is 24h after MCAo
 g_0 = 3
 g_1 = c(-10,-60) #this values will be varied to simulate a treatment effect on welfare with different magnitudes  
 g_2 = c(-9) #taken from Bederson et al. 1986 
-sd_Y = 10
+sd_Y = 10 #previously this was set to 10 - rationale?
 sd_W = 2
-cutoff_W = c(0.3)
-n = 20 #total number of animals in the experiment
+cutoff_W = c(0.1, 0.2, 0.3)
+n = c(10,20, 50) #total number of animals in the experiment
 
 report <- expand_grid(prob_A, mean_L, sd_L, b_0, b_1, b_2, g_0, g_1, g_2, sd_Y, sd_W, cutoff_W, n)
 
@@ -29,7 +30,7 @@ naive_estimate <- matrix(NA_real_, ncol=B, nrow=nrow(report))
 adjusted_mod_estimate <- matrix(NA_real_, ncol=B, nrow=nrow(report))
 no_exclusion_estimate <- matrix(NA_real_, ncol=B, nrow=nrow(report))
 
-set.seed(5)
+set.seed(100)
 
 # here starts the counting of the row
 for (i in 1:nrow(report)) {
@@ -55,11 +56,14 @@ adjusted_mod_estimate[i,b]<-model$coefficients[2]
 }
 }
 
+
+ sum(dat$L<dat$Y)
 # assess bias
 apply(naive_estimate, 1, mean)
 apply(no_exclusion_estimate, 1, mean)
 apply(adjusted_mod_estimate, 1, mean)
 
+qt_95<-qt(0.975, 9)
 
 
 #standard deviation
@@ -67,25 +71,75 @@ apply(naive_estimate, 1, sd)
 apply(no_exclusion_estimate,1,sd)
 apply(adjusted_mod_estimate, 1,sd)
 
+
 df<-data.frame(mean_naive_estimate = round(apply(naive_estimate, 1, mean),2), 
            mean_no_exclusion_estimate = round(apply(no_exclusion_estimate, 1, mean),2),
            mean_adjusted_mod_estimate = round(apply(adjusted_mod_estimate, 1, mean),2), 
-           side_effects = c("minor", "major"))
+           sd_naive_estimate = round(apply(naive_estimate, 1, sd),2), 
+           sd_no_exclusion_estimate = round(apply(no_exclusion_estimate,1, sd), 2),
+           sd_adjusted_mod_estimate = round(apply(adjusted_mod_estimate,1, sd),2)
+           )
 
-df_long<-df%>%gather(key = model, value = estimate, mean_naive_estimate:mean_adjusted_mod_estimate)
+#calculating confidence intervals 
 
-ggplot(df_long) + 
-  geom_point(aes(x = side_effects, y = estimate, color = model))+
+degrees_of_freedom<-n-2
+
+df_n_g1_cutoff_W<-report%>%select("g_1", "n", "cutoff_W")
+
+df<-cbind(df, df_n_g1_cutoff_W)
+
+df<-df%>%
+  rename(side_effect = g_1)%>%
+  mutate(LC_naive_estimate = NA,
+         LC_adjusted_mod_estimate = NA, 
+         LC_no_exclusion_estimate = NA,
+         UC_naive_estimate = NA,
+         UC_adjusted_mod_estimate = NA, 
+         UC_no_exclusion_estimate = NA)
+
+
+for (i in 1:nrow(df)) {
+  df$side_effect[i]<-ifelse(df$side_effect[i] == -10, "minor", "major")
+  df$LC_naive_estimate[i]<-df$mean_naive_estimate[i]-qt(0.975, df$n[i])*df$sd_naive_estimate[i]
+  df$LC_adjusted_mod_estimate[i]<-df$mean_adjusted_mod_estimate[i]-qt(0.975, df$n[i])*df$sd_adjusted_mod_estimate[i]
+  df$LC_no_exclusion_estimate[i]<-df$mean_no_exclusion_estimate[i]-qt(0.975, df$n[i])*df$sd_no_exclusion_estimate[i]
+  df$UC_naive_estimate[i]<-df$mean_naive_estimate[i]+qt(0.975, df$n[i])*df$sd_naive_estimate[i]
+  df$UC_adjusted_mod_estimate[i]<-df$mean_adjusted_mod_estimate[i]+qt(0.975, df$n[i])*df$sd_adjusted_mod_estimate[i]
+  df$UC_no_exclusion_estimate[i]<-df$mean_no_exclusion_estimate[i]+qt(0.975, df$n[i])*df$sd_no_exclusion_estimate[i]
+}
+
+
+df_estimate<-df%>%
+  select(n,side_effect,cutoff_W, mean_naive_estimate:mean_adjusted_mod_estimate)%>%
+  gather(key = model, value = estimate, mean_naive_estimate:mean_adjusted_mod_estimate)
+
+df_confidence<-df%>%
+  select(n, side_effect, LC_naive_estimate:UC_no_exclusion_estimate)%>%
+  gather(key = LC_model, value = LC_limits, LC_naive_estimate:LC_no_exclusion_estimate)%>%
+  gather(key = UC_model, value = UC_limits, UC_naive_estimate:UC_no_exclusion_estimate)%>%
+  mutate(model = c(rep("naive", 18), rep("adjusted", 18), rep("no_exclusion", 18)))
+
+ggplot() + 
+  geom_point(data = df_estimate, aes(x = side_effect, y = estimate, color = model), size = 3)+
+  facet_grid(cols = vars(n), 
+             rows = vars(cutoff_W))+
   scale_color_manual(values = c("#0072B2", "goldenrod1", "plum4"),
-                     name = "coefficient for: treatment -> final infarct size",
+                     name = "treatment effect estimate",
                      labels= c("baseline-adjusted censored model", "censored model", "complete model"))+
   geom_hline(yintercept = 0, linetype = "dashed", color = "red")+
-  labs(title = "Estimated values for treatment effect from simulated experiments",
+  labs(title = "Estimated values for treatment effect from simulated experiments with different total sample sizes",
        subtitle = "Coefficient value for treatment effect in complete sample, censored sample and baseline-adjusted censored sample",
-       x= "")+
-  theme_classic()
+       x= "")
   
 
+ggplot()+
+  geom_errorbar(data = df_confidence, aes(x = model, ymin = LC_limits, ymax = UC_limits))+
+  geom_jitter(size = 4, width = 0.1)+
+  facet_grid(cols = vars(n),
+             rows = vars(side_effect))
+
+
+apply(naive_estimate, 1, summary)
 
 
 range<-range%>% select(c(2,3,5))%>%
