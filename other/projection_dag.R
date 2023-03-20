@@ -1,0 +1,195 @@
+library(tidyverse)
+# settings for styling visualization
+cols <- RColorBrewer::brewer.pal(6, "Dark2")
+########################################################
+# setting number of random draws 
+B=100
+
+########################################################
+# setting parameter values 
+
+# E Bernoulli prob_E
+# L is normal with mean_L and sd_L
+# Y = b_0 + b_1*E + b_2*L + rnorm(0,sd_Y)
+# W = g_0 + g_1*E + g_2*L + rnorm(0, sd_W)
+
+prob_E = 0.5
+mean_L = 25  
+sd_L = 5
+b_0 = 50 
+b_1 = c(0) 
+b_2 = 4 
+g_0 = 3
+g_1 = c(-10,-30,-60)   
+g_2 = c(-10)  
+sd_Y = 10 
+sd_W = 2
+cutoff_W = c(0.2, 0.3,0.5)
+n = c(10, 20, 50) #total number of animals in the experiment
+
+report <- expand_grid(prob_E, mean_L, 
+                      sd_L, b_0, b_1, 
+                      b_2, g_0, g_1, 
+                      g_2, sd_Y, sd_W, 
+                      cutoff_W, n)
+
+
+######################################################################
+
+
+######################################################################
+# simulation of B random draws with set parameter values 
+
+# preparation of empty matrix for model 1, model 2 & model 3 
+# for later storage of values from replications 
+m1 <- matrix(NA_real_, ncol=B, nrow=nrow(report))
+m2 <- matrix(NA_real_, ncol=B, nrow=nrow(report))
+m3 <- matrix(NA_real_, ncol=B, nrow=nrow(report))
+
+
+# ensure reproducibility of random draw 
+set.seed(100)
+
+######################################################################
+# function for replication draws 
+
+# here starts the counting of the row
+for (i in 1:nrow(report)) {
+  
+  # here starts the loop in b
+  for (b in 1:B) {
+    
+    # create the dataset
+    dat <- data.frame(E = rep(0:1,report$prob_E[i]*report$n[i], each=1),
+                      L = rnorm(n=report$n[i], mean=report$mean_L[i], 
+                                sd=report$sd_L[i]))
+    dat$W <- report$g_0[i] + report$g_1[i]*dat$E + report$g_2[i]*dat$L + rnorm(report$n[i], 0, report$sd_W[i])
+    dat$Y <- report$b_0[i] + report$b_1[i]*dat$E + report$b_2[i]*dat$L + rnorm(report$n[i], 0, report$sd_Y[i])
+    dat$S <- dat$W >= quantile(dat$W, probs=report$cutoff_W[i]) 
+    dat_s <- dat %>% filter(S==TRUE)
+    m2[i,b] =  mean(dat_s$Y[dat_s$E==1]) - mean(dat_s$Y[dat_s$E==0])
+    
+    m1[i,b] = mean(dat$Y[dat$E==1]) - mean(dat$Y[dat$E==0])
+    
+    model<-lm(Y ~ E + L, data = dat_s)
+    m3[i,b]<-model$coefficients[2]
+  }
+}
+
+################################################################################
+
+
+# data transformation for stratification and visualization 
+
+m1_tibble <- as_tibble(m1) %>% mutate(model = "m1", 
+                                      index = 1:27)
+m2_tibble <- as_tibble(m2) %>% mutate(model = "m2", 
+                                      index = 1:27)
+m3_tibble <- as_tibble(m3) %>% mutate(model = "m3", 
+                                      index = 1:27)
+
+df <- rbind(m1_tibble, m2_tibble, m3_tibble)
+
+names<-NULL
+
+for (i in 1:10000) {
+  names[i] <- c(paste("estimate_",i, sep = ""))
+}
+colnames(df)<-c(names, "model", "index") 
+
+
+
+df2 <- gather(df, 
+              key  = sim_number, 
+              value = effect_estimate, 
+              estimate_1:estimate_10000)
+
+df3 <- report %>% 
+  mutate(index = 1:nrow(report))%>%
+  select(c(index,n, cutoff_W, g_1))
+
+df3$g_1 <- factor(df3$g_1,levels = c(-60, -30, -10), 
+                  labels = c("major", "moderate", "minor"))
+df3$cutoff_W <- factor(df3$cutoff_W, levels = c(0.2,0.3,0.5),
+                       labels = c("20% attrition", "30% attrition", "50% attrition"))
+df4 <- inner_join(df2, df3)
+
+#######################################################################################
+# stratified results
+# 
+
+
+# results for model 2 (biased sample) stratified by attrition rate 
+r1<- df4%>%
+  filter(model == "m2")%>%
+  group_by(cutoff_W)%>%
+  summarize(mean_bias = mean(effect_estimate, na.rm = T))
+r1
+
+# results for model 2 (biased sample) stratified by strength of negative side effects 
+
+r2<- df4 %>%
+  filter(model == "m2")%>%
+  group_by(g_1)%>%
+  summarize(mean_bias = mean(effect_estimate, na.rm = T))
+r2
+
+# results grouped by negative side-effects and attrition rates 
+r3<- df4%>%
+  filter(model == "m2")%>%
+  group_by(g_1, cutoff_W)%>%
+  summarize(mean_bias = mean(effect_estimate, na.rm = TRUE))
+r3
+
+r4<- df4%>%
+  filter(model == "m3")%>%
+  group_by(g_1, cutoff_W)%>%
+  summarize(mean_bias = mean(effect_estimate, na.rm = TRUE), 
+            min = min(effect_estimate, na.rm = T), 
+            max = max(effect_estimate, na.rm = T))
+r4
+
+###########################################################################################
+# Visualization 
+
+# Figure 3: boxplot presentation of results with all values depicted 
+# notice the outliers for model 3 in the strong side-effects, strong attrition model with 
+# small sample sizes! 
+
+fig3<- ggplot(na.omit(df4))+
+  geom_boxplot(aes(x = g_1, y = effect_estimate, color = model))+
+  facet_grid(cols = vars(factor(n)), 
+             rows = vars(factor(cutoff_W)))+
+  #coord_cartesian(ylim = c(-30,20))+
+  scale_color_manual(values = c(cols[1], cols[4], cols[8]), 
+                     labels = c("Model 1", "Model 2", "Model 3"))+
+  labs(title = "Model comparison: adjustment for initial infarct size mitigates collider stratification bias",
+       y = expression("difference in final infarct volume,mm"^"3"), 
+       x = "strength of negative side-effect of treatment on welfare")+
+  theme_light()+
+  theme(panel.grid.major = element_blank(),
+        legend.position = "bottom", 
+        legend.title = element_blank())
+
+fig3
+
+
+min(df4$effect_estimate, na.rm = T)   #--> stems from the adjusted model (model 3)
+max(df4$effect_estimate, na.rm = T)   #--> stems from the adjusted model (model 3)
+
+
+#figure 3a cuts out part of fig3 graph 
+fig3<- ggplot(na.omit(df4))+
+  geom_boxplot(aes(x = g_1, y = effect_estimate, color = model))+
+  facet_grid(cols = vars(factor(n)), 
+             rows = vars(factor(cutoff_W)))+
+  coord_cartesian(ylim = c(-30,20))+
+  scale_color_manual(values = c(cols[1], cols[4], cols[8]), 
+                     labels = c("Model 1", "Model 2", "Model 3"))+
+  labs(title = "Model comparison: adjustment for initial infarct size mitigates collider stratification bias",
+       y = expression("difference in final infarct volume,mm"^"3"), 
+       x = "strength of negative side-effect of treatment on welfare")+
+  theme_light()+
+  theme(panel.grid.major = element_blank(),
+        legend.position = "bottom", 
+        legend.title = element_blank())
