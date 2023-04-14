@@ -111,10 +111,10 @@ df3 <- report %>%
   mutate(index = 1:nrow(report))%>%
   select(c(index,n, cutoff_W, g_1))
 
-df3$g_1 <- factor(df3$g_1,levels = c(-60, -30, -10), 
+df3$g_1 <- factor(df3$g_1,levels = c(-6, -3, -1), 
                   labels = c("major", "moderate", "minor"))
 df3$cutoff_W <- factor(df3$cutoff_W, levels = c(0.2,0.3,0.5),
-                       labels = c("20% attrition", "30% attrition", "50% attrition"))
+                       labels = c("20", "30", "50"))
 df4 <- inner_join(df2, df3)
 
 #######################################################################################
@@ -145,11 +145,11 @@ r3<- df4%>%
 r3
 
 r4<- df4%>%
-  filter(model == "m3")%>%
+  filter(model == "m2")%>%
   group_by(g_1, cutoff_W)%>%
-  summarize(mean_bias = mean(effect_estimate, na.rm = TRUE), 
-            min = min(effect_estimate, na.rm = T), 
-            max = max(effect_estimate, na.rm = T))
+  summarize(mean_bias = round(mean(effect_estimate, na.rm = TRUE),1),
+            quan_25 = round(quantile(effect_estimate, probs = 0.025, na.rm = TRUE),1),
+            quan_975 = round(quantile(effect_estimate, probs = 0.975, na.rm = TRUE),1))
 r4
 
 ###########################################################################################
@@ -203,5 +203,20 @@ fig3
 # min(df4$effect_estimate, na.rm = T)   #--> stems from the adjusted model (model 3)
 # max(df4$effect_estimate, na.rm = T)   #--> stems from the adjusted model (model 3)
 # 
+
+####################################
+#   Table S1
+
+colnames(r4) <- c("side-effects", 
+                  "total attrition rates (%)", 
+                  "mean estimate", 
+                  "2.5% quantile", 
+                  "97.5% quantile")
+
+kable(r4, 
+      caption = "Table S1: Biased mean estimates of complete-case analysis under different scenarios of side-effects and attrition")%>%
+  kable_classic()%>%
+  save_kable("t1.png")
+
 
 

@@ -2,6 +2,7 @@ library(KScorrect)
 library(tidyverse)
 library(kableExtra)
 
+
 g_0 = 3
 g_1 = c(-1, -3, -6)
 g_2 = -1
@@ -78,7 +79,8 @@ colnames(report3) <- c("side-effects",
 
 kable(report3, 
       caption = "Table S2: Attrition rates stratified by intervention group")%>%
-  kable_classic()
+  kable_classic() %>%
+  save_kable("t2.png")
 
 
 
