@@ -8,12 +8,12 @@ B=10000
 ########################################################
 # setting parameter values 
 
-# E Bernoulli prob_E
+# E Bernoulli prob_A
 # L is normal with mean_L and sd_L
 # Y = b_0 + b_1*E + b_2*L + rnorm(0,sd_Y)
 # W = g_0 + g_1*E + g_2*L + rnorm(0, sd_W)
 
-prob_E = 0.5          # probability of being assigned to treatment or control 
+prob_A = 0.5          # probability of being assigned to treatment or control 
 mean_L = 25           # initial infarct size 
 sd_L = 5              # standard deviation of initial infarct size
 b_0 = 50              # intercept value for final infarct size 
@@ -30,7 +30,7 @@ n = c(10, 20, 50) #total number of animals in the experiment
 
 
 # combining all possible parameter values and values of n 
-report <- expand_grid(prob_E, mean_L, 
+report <- expand_grid(prob_A, mean_L, 
                       sd_L, b_0, b_1, 
                       b_2, g_0, g_1, 
                       g_2, sd_Y, sd_W, 
@@ -51,7 +51,7 @@ m3 <- matrix(NA_real_, ncol=B, nrow=nrow(report))
 
 
 # ensure reproducibility of random draw 
-set.seed(100)
+set.seed(10000)
 
 ######################################################################
 # function for replication draws 
@@ -63,18 +63,18 @@ for (i in 1:nrow(report)) {
   for (b in 1:B) {
     
     # create the dataset
-    dat <- data.frame(E = rep(0:1,report$prob_E[i]*report$n[i], each=1),
+    dat <- data.frame(A = rep(0:1,report$prob_A[i]*report$n[i], each=1),
                       L = rnorm(n=report$n[i], mean=report$mean_L[i], 
                                 sd=report$sd_L[i]))
-    dat$W <- report$g_0[i] + report$g_1[i]*dat$E + report$g_2[i]*dat$L + rnorm(report$n[i], 0, report$sd_W[i])
-    dat$Y <- report$b_0[i] + report$b_1[i]*dat$E + report$b_2[i]*dat$L + rnorm(report$n[i], 0, report$sd_Y[i])
+    dat$W <- report$g_0[i] + report$g_1[i]*dat$A + report$g_2[i]*dat$L + rnorm(report$n[i], 0, report$sd_W[i])
+    dat$Y <- report$b_0[i] + report$b_1[i]*dat$A + report$b_2[i]*dat$L + rnorm(report$n[i], 0, report$sd_Y[i])
     dat$S <- dat$W >= quantile(dat$W, probs=report$cutoff_W[i]) 
     dat_s <- dat %>% filter(S==TRUE)
-    m2[i,b] =  mean(dat_s$Y[dat_s$E==1]) - mean(dat_s$Y[dat_s$E==0])
+    m2[i,b] =  mean(dat_s$Y[dat_s$A==1]) - mean(dat_s$Y[dat_s$A==0])
     
-    m1[i,b] = mean(dat$Y[dat$E==1]) - mean(dat$Y[dat$E==0])
+    m1[i,b] = mean(dat$Y[dat$A==1]) - mean(dat$Y[dat$A==0])
     
-    model<-lm(Y ~ E + L, data = dat_s)
+    model<-lm(Y ~ A + L, data = dat_s)
     m3[i,b]<-model$coefficients[2]
   }
 }
@@ -116,6 +116,8 @@ df3$g_1 <- factor(df3$g_1,levels = c(-6, -3, -1),
 df3$cutoff_W <- factor(df3$cutoff_W, levels = c(0.2,0.3,0.5),
                        labels = c("20", "30", "50"))
 df4 <- inner_join(df2, df3)
+
+# write.csv(df4, "./manuscript_figures_code/df4.csv")
 
 #######################################################################################
 # stratified results
@@ -178,31 +180,6 @@ fig3
 
 
 
-
-# Figure 3b: boxplot 
-
-
-# #fig3b<- ggplot(na.omit(df4))+
-#   geom_boxplot(aes(x = g_1, y = effect_estimate, color = model))+
-#   facet_grid(cols = vars(factor(n)),
-#              rows = vars(factor(cutoff_W)))+
-#   #coord_cartesian(ylim = c(-30,20))+
-#   scale_color_manual(values = c(cols[1], cols[4], cols[8]),
-#                      labels = c("Model 1", "Model 2", "Model 3"))+
-#   labs(title = "Model comparison: adjustment for initial infarct size mitigates collider stratification bias",
-#        y = expression("difference in final infarct volume,mm"^"3"),
-#        x = "strength of negative side-effect of treatment on welfare")+
-#   theme_light()+
-#   theme(panel.grid.major = element_blank(),
-#         legend.position = "bottom",
-#         legend.title = element_blank())
-# 
-# fig3b
-# 
-# 
-# min(df4$effect_estimate, na.rm = T)   #--> stems from the adjusted model (model 3)
-# max(df4$effect_estimate, na.rm = T)   #--> stems from the adjusted model (model 3)
-# 
 
 ####################################
 #   Table S1
