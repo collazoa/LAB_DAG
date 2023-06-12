@@ -1,9 +1,6 @@
-library(KScorrect)
-library(tidyverse)
-library(kableExtra)
+source("./manuscript_figures_code/load_packages.R")
 
-
-g_0 = 3
+g_0 = 0
 g_1 = c(-1, -3, -6)
 g_2 = -1
 sd1 = sd2 = 5
@@ -76,6 +73,9 @@ colnames(report3) <- c("side-effects",
                        "total attrition rates (%)", 
                        "attrition rate in treatment group (%)", 
                        "attrition rate in control group (%)")
+
+report3 %>%
+  arrange("side-effects")
 
 kable(report3, 
       caption = "Table S2: Attrition rates stratified by intervention group")%>%
