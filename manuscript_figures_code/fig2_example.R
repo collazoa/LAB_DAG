@@ -2,12 +2,6 @@ source("./manuscript_figures_code/load_packages.R")
 # settings for styling visualization
 cols <- RColorBrewer::brewer.pal(6, "Dark2")
 theme_set(theme_classic(base_size = 12))
-letter <- theme(plot.title = element_text(face = "bold", 
-                                          size = 14), 
-                axis.title = element_text(face = "bold", 
-                                          size = 14), 
-                axis.text = element_text(face = "bold", 
-                                         size = 12))
 
 
 #######################################
@@ -121,6 +115,16 @@ d_s_summary <- d_s %>% group_by(A) %>%
 ######################################################
 # visualization for Figure 2
 
+letter <- theme(plot.title = element_text(face = "bold", 
+                                          size = 14), 
+                axis.title = element_text(face = "bold", 
+                                          size = 14), 
+                axis.text = element_text(face = "bold", 
+                                         size = 12), 
+                plot.margin = unit(c(2,2,2,0), "cm"),
+)
+
+
 
 fig2 <- grid.arrange(
   ggplot() +
@@ -163,7 +167,9 @@ fig2 <- grid.arrange(
     ylim(10, 40) +
     ggtitle("A") +
     letter+
-    theme(legend.position = "none"),
+    theme(legend.position = "none", 
+          plot.margin = unit(c(2,0,2,2), "cm"),
+    ),
   
   
   ggplot() +
@@ -207,16 +213,17 @@ fig2 <- grid.arrange(
     ggtitle("B") +
     letter + 
     theme(
-      legend.position = "none"
+      legend.position = "none",
+      plot.margin = unit(c(2,2,2,0.5), "cm")
     ),
   
   nrow = 1,
-  ncol = 2,
-  top = text_grob("Impact of collider bias stratification on initial infarct size and effect estimates", 
-                  color = "black", 
-                  face = "bold", 
-                  size = 20
-                  )
+  ncol = 2
+  #top = text_grob("Impact of collider bias stratification on initial infarct size and effect estimates", 
+                  # color = "black", 
+                  # face = "bold", 
+                  # size = 20
+                  # )
 )
 
 
