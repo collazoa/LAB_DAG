@@ -1,11 +1,11 @@
 source("./manuscript_figures_code/load_packages.R")
 
 g_0 = 0
-g_1 = c(-1, -3, -6)
-g_2 = -1
-sd1 = sd2 = 5
-mean_L = 25 # mean L value
-cutoff_W = c(0.2, 0.3, 0.5)
+g_1 = c(-1, -3, -6) # strength if side effects A -> W 
+g_2 = -1            # L -> W 
+sd1 = sd2 = 5       # sd of initial infarct size 
+mean_L = 25         # mean L value
+cutoff_W = c(0.2, 0.3, 0.5)   #attrition frequencies 
 
 
 report2 <- expand.grid(g_0 = g_0, 
@@ -69,18 +69,17 @@ report3$cutoff_W <- factor(report3$cutoff_W, levels = c(0.2,0.3,0.5),
 report3$g_1 <- factor(report3$g_1,levels = c(-6, -3, -1), 
                              labels = c("major", "moderate", "minor"))
 
+report3 <- 
+  report3 %>%
+  arrange(desc(g_1))
+
 colnames(report3) <- c("side-effects", 
                        "total attrition rates (%)", 
                        "attrition rate in treatment group (%)", 
                        "attrition rate in control group (%)")
 
-report3 %>%
-  arrange("side-effects")
-
 kable(report3, 
       caption = "Table S2: Attrition rates stratified by intervention group")%>%
-  kable_classic() %>%
-  save_kable("t2.png")
-
+  kable_classic() 
 
 
