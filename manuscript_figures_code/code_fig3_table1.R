@@ -7,10 +7,10 @@ cols <- RColorBrewer::brewer.pal(6, "Dark2")
 ########################################################
 # setting parameter values 
 
-# E Bernoulli prob_A
+# A Bernoulli prob_A
 # L is normal with mean_L and sd_L
-# Y = b_0 + b_1*E + b_2*L + rnorm(0,sd_Y)
-# W = g_0 + g_1*E + g_2*L + rnorm(0, sd_W)
+# Y = b_0 + b_1*A + b_2*L + rnorm(0,sd_Y)
+# W = g_0 + g_1*A + g_2*L + rnorm(0, sd_W)
 
 prob_A = 0.5          # probability of being assigned to treatment or control 
 mean_L = 25           # initial infarct size 
@@ -41,12 +41,20 @@ B = 10000
 
 
 ######################################################################
-# simulation of B random draws with set parameter values 
+# simulation of B random draws with set parameter values
+
+
+# The simulation will take considerable time to run 
+# If you prefer to run the analysis with the dataset 
+# given please load the simulated dataset with 
+# load("./manuscript_figures_code/df_fig.RData")
+
+# proceed then with "data wrangling" 
 
 ########################################################
 
 
-# preparation of empty matrix for model 1, model 2 & model 3 
+# preparation of empty matrix for model 1 ("oracle"), model 2 ("naive") & model 3 ("adjusted") 
 # for later storage of values from replications 
 m1 <- matrix(NA_real_, ncol=B, nrow=nrow(report))
 m2 <- matrix(NA_real_, ncol=B, nrow=nrow(report))
@@ -100,8 +108,10 @@ df <- rbind(m1_tibble, m2_tibble, m3_tibble)
 ###############################################################################
 
 
-load("./manuscript_figures_code/df_fig.RData")
 
+#################################
+# data wrangling 
+#################################
 
 
 names<-NULL
