@@ -47,7 +47,7 @@ B = 10000
 # The simulation will take considerable time to run 
 # If you prefer to run the analysis with the dataset 
 # given please load the simulated dataset with 
-# load("./manuscript_figures_code/df_fig.RData")
+load("./manuscript_figures_code/df_fig.RData")
 
 # proceed then with "data wrangling" 
 
@@ -176,15 +176,8 @@ na_m3 <-
 ##################################################
 
 
-
-r4<- df4%>%
-  filter(model == "m2")%>%
-  group_by(g_1, cutoff_W)%>%
-  summarize(mean_bias = round(mean(effect_estimate, na.rm = TRUE),1),
-            quan_25 = round(quantile(effect_estimate, probs = 0.025, na.rm = TRUE),1),
-            quan_975 = round(quantile(effect_estimate, probs = 0.975, na.rm = TRUE),1))
-
-r5<- df4%>%
+r5<- 
+  df4%>%
   filter(model == "m2")%>%
   group_by(g_1, n)%>%
   summarize(mean_bias = round(mean(effect_estimate, na.rm = TRUE),1),
@@ -192,19 +185,41 @@ r5<- df4%>%
             quan_975 = round(quantile(effect_estimate, probs = 0.975, na.rm = TRUE),1)) %>%
   arrange(n)
 
+colnames(r5) <- c("side effects", 
+                  "n(total)", 
+                  "mean effect estimate", 
+                  "2.5% quantile", 
+                  "9.75% quantile")
+
 r5
 
-r6<- df4%>%
+kableExtra::kable(r5, 
+                  caption = "Bias in naive estimates by sample size\n and strength of side effects") %>% 
+  kable_classic()
+
+r6<- 
+  df4%>%
   filter(model == "m2")%>%
   group_by(cutoff_W, n)%>%
   summarize(mean_bias = round(mean(effect_estimate, na.rm = TRUE),1),
             quan_25 = round(quantile(effect_estimate, probs = 0.025, na.rm = TRUE),1),
             quan_975 = round(quantile(effect_estimate, probs = 0.975, na.rm = TRUE),1)) %>%
   arrange(n)
+
+colnames(r6) <- c("attrition frequencies", 
+                  "n(total)", 
+                  "mean effect estimate", 
+                  "2.5% quantile", 
+                  "9.75% quantile")
+
 r6
+kableExtra::kable(r6, 
+                  caption = "Bias in naive estimates by sample size\n and attrition frequencies") %>% 
+  kable_classic()
 
 
-r7<- df4%>%
+r7<- 
+  df4%>%
   filter(model == "m2")%>%
   group_by(g_1, cutoff_W, n)%>%
   summarize(mean_bias = round(mean(effect_estimate, na.rm = TRUE),1),
@@ -212,6 +227,18 @@ r7<- df4%>%
             quan_975 = round(quantile(effect_estimate, probs = 0.975, na.rm = TRUE),1)) %>%
   arrange(n)
 r7
+colnames(r7) <- c("side effects",
+                  "attrition frequencies", 
+                  "n(total)", 
+                  "mean effect estimate", 
+                  "2.5% quantile", 
+                  "9.75% quantile")
+
+kableExtra::kable(r7, 
+                  caption = "Bias in naive estimates by sample size\n, side effects and attrition frequencies") %>% 
+  kable_classic()
+
+
 
 
 
