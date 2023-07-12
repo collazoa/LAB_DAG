@@ -24,7 +24,7 @@ g_2 = -1              # effect of initial infarct size on welfare (L -> W)
 sd_Y = 10             # standard deviation of final infarct size Y  
 sd_W = 2              # standard deviation of animal welfare W 
 cutoff_W = 0.3        # attrition rates 
-n = 40                # total number of animals in the experiment
+n = 20                # total number of animals in the experiment
 
 
 # combining all possible parameter values and values of n 
@@ -46,8 +46,7 @@ B = 1
 
 
 # ensure reproducibility of random draw 
-set.seed(19)
-
+set.seed(120) 
 ######################################################################
 # function for replication draws 
 
@@ -64,8 +63,7 @@ for (i in 1:nrow(report)) {
     dat$W <- report$g_0[i] + report$g_1[i]*dat$A + report$g_2[i]*dat$L + rnorm(report$n[i], 0, report$sd_W[i])
     dat$Y <- report$b_0[i] + report$b_1[i]*dat$A + report$b_2[i]*dat$L + rnorm(report$n[i], 0, report$sd_Y[i])
     dat$S <- dat$W >= quantile(dat$W, probs=report$cutoff_W[i]) 
-    dat_s <- dat %>% filter(S==TRUE)  					#only selected animals
-				#3 - unbiased, extracted coeff for A (saved)
+    dat_s <- dat %>% filter(S==TRUE)  			
   }
 }
 
@@ -81,13 +79,16 @@ dat <- dat %>%
     X1 = factor(recode(A, `0` = "Control", `1` = "Drug"))
   )
 
-dat_s <- dat_s %>%
+dat_s <- 
+  dat_s %>%
   mutate(
     cols = factor(dat_s$A, labels = c(cols[1], cols[4])),
     X1 = factor(recode(A, `0` = "Control", `1` = "Drug"))
   )
 
-dat_summary <- dat %>% group_by(A) %>%
+dat_summary <- 
+  dat %>% 
+  group_by(A) %>%
   summarize(
     mean_L = mean(L),
     mean_Y = mean(Y),
@@ -100,7 +101,9 @@ dat_summary <- dat %>% group_by(A) %>%
     x = c(0.7, 1.7)
   )
 
-dat_s_summary <- dat_s %>% group_by(A) %>%
+dat_s_summary <- 
+  dat_s %>% 
+  group_by(A) %>%
   summarize(
     mean_L = mean(L),
     mean_Y = mean(Y),
@@ -133,10 +136,9 @@ fig2a <-
   ggplot() +
   geom_quasirandom(
     data = dat,
-    aes(y = L, x = X1, fill = cols),
+    aes(y = L, x = X1, fill = cols, alpha = opacity),
     shape = 21,
     color = "darkblue",
-    alpha = dat$opacity,
     size = 5,
     width = 0.3
   ) +
@@ -185,10 +187,13 @@ fig2b <-
   ggplot() +
   geom_quasirandom(
     data = dat,
-    aes(y = Y, x = X1, group = X1, fill = cols),
+    aes(y = Y, 
+        x = X1, 
+        group = X1, 
+        fill = cols, 
+        alpha = opacity),
     shape = 21,
     color = "darkblue",
-    alpha = dat$opacity,
     size = 5,
     width = 0.3
   ) +
@@ -219,7 +224,7 @@ fig2b <-
   ) +
   ylab(expression("Final infarct size (mm" ^ 3 * ")")) +
   xlab("") +
-  ylim(100, 350) +
+  ylim(120, 300) +
   ggtitle("B") +
   theme_classic()+
   letter + 
