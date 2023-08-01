@@ -47,7 +47,11 @@ B = 10000
 # The simulation will take considerable time to run 
 # If you prefer to run the analysis with the dataset 
 # given please load the simulated dataset with 
-load("./manuscript_figures_code/df_fig.RData")
+df <- read.csv("./manuscript_figures_code/df_simulation_fig3.csv") 
+  
+df <- df %>%
+  select(-1)
+
 
 # proceed then with "data wrangling" 
 
@@ -56,9 +60,9 @@ load("./manuscript_figures_code/df_fig.RData")
 
 # preparation of empty matrix for model 1 ("oracle"), model 2 ("naive") & model 3 ("adjusted") 
 # for later storage of values from replications 
-m1 <- matrix(NA_real_, ncol=B, nrow=nrow(report))
-m2 <- matrix(NA_real_, ncol=B, nrow=nrow(report))
-m3 <- matrix(NA_real_, ncol=B, nrow=nrow(report))
+oracle <- matrix(NA_real_, ncol=B, nrow=nrow(report))
+naive <- matrix(NA_real_, ncol=B, nrow=nrow(report))
+adjusted <- matrix(NA_real_, ncol=B, nrow=nrow(report))
 
 
 # ensure reproducibility of random draw 
@@ -80,13 +84,15 @@ for (i in 1:nrow(report)) {
     dat$W <- report$g_0[i] + report$g_1[i]*dat$A + report$g_2[i]*dat$L + rnorm(report$n[i], 0, report$sd_W[i])
     dat$Y <- report$b_0[i] + report$b_1[i]*dat$A + report$b_2[i]*dat$L + rnorm(report$n[i], 0, report$sd_Y[i])
     dat$S <- dat$W >= quantile(dat$W, probs=report$cutoff_W[i]) 
-    dat_s <- dat %>% filter(S==TRUE)  					#only selected animals
-    m2[i,b] =  mean(dat_s$Y[dat_s$A==1]) - mean(dat_s$Y[dat_s$A==0]) 	#2- naive, Among selected animals only, mean of the outcome among treated minus mean of outcome among untreated
+    dat_s <- dat %>% filter(S==TRUE)  		# filtering the surviving animals
+    naive[i,b] =  mean(dat_s$Y[dat_s$A==1]) - mean(dat_s$Y[dat_s$A==0]) 	#NAIVE, Among selected animals only, 
+                                                                          # mean of the outcome among treated minus mean of outcome among untreated
     
-    m1[i,b] = mean(dat$Y[dat$A==1]) - mean(dat$Y[dat$A==0])		#1 - unbiased, Among all animals, mean of the outcome among treated minus mean of outcome among untreated
+    oracle[i,b] = mean(dat$Y[dat$A==1]) - mean(dat$Y[dat$A==0])		# ORACLE, Among all animals, 
+                                                                  # mean of the outcome among treated minus mean of outcome among untreated
     
-    model<-lm(Y ~ A + L, data = dat_s)					#regression for outcome only among selected animals, adjusting for confounding (L)
-    m3[i,b]<-model$coefficients[2]					#3 - unbiased, extracted coeff for A (saved)
+    model<-lm(Y ~ A + L, data = dat_s)					  # regression for outcome only among selected animals, adjusting (L)
+    adjusted[i,b]<-model$coefficients[2]					# 3 ADJUSTED, extracted coeff for A (saved)
   }
 }
 
@@ -95,14 +101,14 @@ for (i in 1:nrow(report)) {
 # For 27 scenarios (index = scenario)
 # data transformation for stratification and visualization 
 
-m1_tibble <- as_tibble(m1) %>% mutate(model = "m1", 
+oracle_tibble <- as_tibble(oracle) %>% mutate(model = "oracle", 
                                       index = 1:27)
-m2_tibble <- as_tibble(m2) %>% mutate(model = "m2", 
+naive_tibble <- as_tibble(naive) %>% mutate(model = "naive", 
                                       index = 1:27)
-m3_tibble <- as_tibble(m3) %>% mutate(model = "m3", 
+adjusted_tibble <- as_tibble(adjusted) %>% mutate(model = "adjusted", 
                                       index = 1:27)
 
-df <- rbind(m1_tibble, m2_tibble, m3_tibble)
+df <- rbind(oracle_tibble, naive_tibble, adjusted_tibble)
 
 
 ###############################################################################
@@ -146,26 +152,26 @@ df2 %>%
             n.na = sum(is.na(effect_estimate)),
             pct = n.na/n.sum)
 
-na_m2 <- 
+na_naive <- 
   df2 %>%
-  filter(model == "m2") %>%
+  filter(model == "naive") %>%
   group_by(index) %>%
   summarize(n.sum = n(), 
             n.na = sum(is.na(effect_estimate)), 
             pct = n.na/n.sum)
-na_m3 <- 
+na_adjusted <- 
   df2 %>%
-  filter(model == "m3") %>%
+  filter(model == "adjusted") %>%
   group_by(index) %>%
   summarize(n.sum = n(), 
             n.na = sum(is.na(effect_estimate)), 
             pct = n.na/n.sum)  
 
-na_m2 <- 
-  inner_join(na_m2, df3, by = "index")
+na_naive <- 
+  inner_join(na_naive, df3, by = "index")
 
-na_m3 <- 
-  inner_join(na_m3, df3, by = "index")
+na_adjusted <- 
+  inner_join(na_adjusted, df3, by = "index")
 
 
 ###################################################
@@ -178,7 +184,7 @@ na_m3 <-
 
 r5<- 
   df4%>%
-  filter(model == "m2")%>%
+  filter(model == "naive")%>%
   group_by(g_1, n)%>%
   summarize(mean_bias = round(mean(effect_estimate, na.rm = TRUE),1),
             quan_25 = round(quantile(effect_estimate, probs = 0.025, na.rm = TRUE),1),
@@ -199,7 +205,7 @@ kableExtra::kable(r5,
 
 r6<- 
   df4%>%
-  filter(model == "m2")%>%
+  filter(model == "naive")%>%
   group_by(cutoff_W, n)%>%
   summarize(mean_bias = round(mean(effect_estimate, na.rm = TRUE),1),
             quan_25 = round(quantile(effect_estimate, probs = 0.025, na.rm = TRUE),1),
@@ -220,7 +226,7 @@ kableExtra::kable(r6,
 
 r7<- 
   df4%>%
-  filter(model == "m2")%>%
+  filter(model == "naive")%>%
   group_by(g_1, cutoff_W, n)%>%
   summarize(mean_bias = round(mean(effect_estimate, na.rm = TRUE),1),
             quan_25 = round(quantile(effect_estimate, probs = 0.025, na.rm = TRUE),1),
@@ -281,12 +287,12 @@ fig3<- ggplot(na.omit(df4))+
   geom_vline(xintercept = c(1.5, 2.5), 
              linewidth = 0.8)+
   facet_grid( n ~ cutoff_W)+
-  coord_cartesian(ylim = c(-40,40))+
+  coord_cartesian(ylim = c(-60,60))+
   scale_fill_manual(values = c(cols[1], cols[4], cols[8]), 
                     labels = c("oracle", "naive", "adjusted"))+
   labs(#title = "Adjustment for initial infarct size mitigates collider stratification bias",
        y = "estimated effect", 
-       x = "strength of negative side-effect of treatment on welfare")+
+       x = "strength of negative side effect of treatment on welfare")+
   theme_bw()+
   letter
 
