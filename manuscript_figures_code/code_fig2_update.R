@@ -76,14 +76,14 @@ dat <- dat %>%
     cols = factor(dat$A, labels = c(cols[1], cols[4])),
     S1 = factor(dat$S, labels = c(0, 1)),
     opacity = recode(S1, `0` = 0.3, `1` = 1),
-    X1 = factor(recode(A, `0` = "Control", `1` = "Drug"))
+    X1 = factor(recode(A, `0` = "Control", `1` = "Treatment"))
   )
 
 dat_s <- 
   dat_s %>%
   mutate(
     cols = factor(dat_s$A, labels = c(cols[1], cols[4])),
-    X1 = factor(recode(A, `0` = "Control", `1` = "Drug"))
+    X1 = factor(recode(A, `0` = "Control", `1` = "Treatment"))
   )
 
 dat_summary <- 
