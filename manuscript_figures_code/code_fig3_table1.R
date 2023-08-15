@@ -182,49 +182,8 @@ na_adjusted <-
 ##################################################
 
 
-r5<- 
-  df4%>%
-  filter(model == "naive")%>%
-  group_by(g_1, n)%>%
-  summarize(mean_bias = round(mean(effect_estimate, na.rm = TRUE),1),
-            quan_25 = round(quantile(effect_estimate, probs = 0.025, na.rm = TRUE),1),
-            quan_975 = round(quantile(effect_estimate, probs = 0.975, na.rm = TRUE),1)) %>%
-  arrange(n)
 
-colnames(r5) <- c("side effects", 
-                  "n(total)", 
-                  "mean effect estimate", 
-                  "2.5% quantile", 
-                  "9.75% quantile")
-
-r5
-
-kableExtra::kable(r5, 
-                  caption = "Bias in naive estimates by sample size\n and strength of side effects") %>% 
-  kable_classic()
-
-r6<- 
-  df4%>%
-  filter(model == "naive")%>%
-  group_by(cutoff_W, n)%>%
-  summarize(mean_bias = round(mean(effect_estimate, na.rm = TRUE),1),
-            quan_25 = round(quantile(effect_estimate, probs = 0.025, na.rm = TRUE),1),
-            quan_975 = round(quantile(effect_estimate, probs = 0.975, na.rm = TRUE),1)) %>%
-  arrange(n)
-
-colnames(r6) <- c("attrition frequencies", 
-                  "n(total)", 
-                  "mean effect estimate", 
-                  "2.5% quantile", 
-                  "9.75% quantile")
-
-r6
-kableExtra::kable(r6, 
-                  caption = "Bias in naive estimates by sample size\n and attrition frequencies") %>% 
-  kable_classic()
-
-
-r7<- 
+table_1<- 
   df4%>%
   filter(model == "naive")%>%
   group_by(g_1, cutoff_W, n)%>%
@@ -232,15 +191,15 @@ r7<-
             quan_25 = round(quantile(effect_estimate, probs = 0.025, na.rm = TRUE),1),
             quan_975 = round(quantile(effect_estimate, probs = 0.975, na.rm = TRUE),1)) %>%
   arrange(n)
-r7
-colnames(r7) <- c("side effects",
+table_1
+colnames(table_1) <- c("side effects",
                   "attrition frequencies", 
                   "n(total)", 
                   "mean effect estimate", 
                   "2.5% quantile", 
                   "9.75% quantile")
 
-kableExtra::kable(r7, 
+kableExtra::kable(table_1, 
                   caption = "Bias in naive estimates by sample size\n, side effects and attrition frequencies") %>% 
   kable_classic()
 
