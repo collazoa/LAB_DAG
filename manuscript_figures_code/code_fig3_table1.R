@@ -238,7 +238,7 @@ letter <- theme(plot.title = element_text(face = "bold",
 df4$n <- as.factor(df4$n)
 levels(df4$n) <- c(expression("n = 10"), expression("n = 20"), expression("n = 50"))
 levels(df4$cutoff_W) <- c("attrition frequency = 20%", "attrition frequency = 30%", "attrition frequency = 50%")
-
+df4$model <- factor(df4$model, levels = c("oracle", "naive", "adjusted"))
 
 fig3<- ggplot(na.omit(df4))+
   geom_hline(aes(yintercept = 0), linetype = "dashed")+
